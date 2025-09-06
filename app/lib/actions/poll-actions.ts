@@ -3,18 +3,29 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-// CREATE POLL
+/**
+ * Creates a new poll in the database.
+ *
+ * This server action takes form data, validates it, and inserts a new poll
+ * into the 'polls' table. It ensures the user is authenticated before
+ * allowing poll creation.
+ *
+ * @param formData - The form data from the poll creation form.
+ *                   Expected to contain 'question' and 'options'.
+ * @returns An object with either an 'error' message or 'error: null' on success.
+ */
 export async function createPoll(formData: FormData) {
   const supabase = await createClient();
 
   const question = formData.get("question") as string;
   const options = formData.getAll("options").filter(Boolean) as string[];
 
+  // Basic validation for question and options.
   if (!question || options.length < 2) {
     return { error: "Please provide a question and at least two options." };
   }
 
-  // Get user from session
+  // Get the current authenticated user.
   const {
     data: { user },
     error: userError,
@@ -26,6 +37,7 @@ export async function createPoll(formData: FormData) {
     return { error: "You must be logged in to create a poll." };
   }
 
+  // Insert the new poll into the database.
   const { error } = await supabase.from("polls").insert([
     {
       user_id: user.id,
@@ -38,11 +50,16 @@ export async function createPoll(formData: FormData) {
     return { error: error.message };
   }
 
+  // Revalidate the '/polls' path to show the new poll in the list.
   revalidatePath("/polls");
   return { error: null };
 }
 
-// GET USER POLLS
+/**
+ * Fetches all polls created by the currently authenticated user.
+ *
+ * @returns An object containing the user's polls or an error message.
+ */
 export async function getUserPolls() {
   const supabase = await createClient();
   const {
@@ -60,7 +77,12 @@ export async function getUserPolls() {
   return { polls: data ?? [], error: null };
 }
 
-// GET POLL BY ID
+/**
+ * Fetches a single poll by its ID.
+ *
+ * @param id - The UUID of the poll to retrieve.
+ * @returns An object containing the poll data or an error message.
+ */
 export async function getPollById(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -73,16 +95,24 @@ export async function getPollById(id: string) {
   return { poll: data, error: null };
 }
 
-// SUBMIT VOTE
+/**
+ * Submits a vote for a specific poll option.
+ *
+ * This action records a vote in the 'votes' table. It can be configured
+ * to allow anonymous voting or require user authentication.
+ *
+ * @param pollId - The ID of the poll being voted on.
+ * @param optionIndex - The index of the selected option.
+ * @returns An object with an error message on failure, or null on success.
+ */
 export async function submitVote(pollId: string, optionIndex: number) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Optionally require login to vote
-  // if (!user) return { error: 'You must be logged in to vote.' };
-
+  // The user ID is optional, allowing for anonymous votes.
+  // If user is null, user_id in the database will be null.
   const { error } = await supabase.from("votes").insert([
     {
       poll_id: pollId,
@@ -95,16 +125,32 @@ export async function submitVote(pollId: string, optionIndex: number) {
   return { error: null };
 }
 
-// DELETE POLL
+/**
+ * Deletes a poll from the database.
+ *
+ * @param id - The ID of the poll to delete.
+ * @returns An object with an error message on failure, or null on success.
+ */
 export async function deletePoll(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("polls").delete().eq("id", id);
   if (error) return { error: error.message };
+
+  // Revalidate the path to update the UI after deletion.
   revalidatePath("/polls");
   return { error: null };
 }
 
-// UPDATE POLL
+/**
+ * Updates an existing poll with new data.
+ *
+ * This action requires the user to be authenticated and to be the owner
+ * of the poll they are trying to update.
+ *
+ * @param pollId - The ID of the poll to update.
+ * @param formData - The new data for the poll.
+ * @returns An object with an error message on failure, or null on success.
+ */
 export async function updatePoll(pollId: string, formData: FormData) {
   const supabase = await createClient();
 
@@ -115,7 +161,6 @@ export async function updatePoll(pollId: string, formData: FormData) {
     return { error: "Please provide a question and at least two options." };
   }
 
-  // Get user from session
   const {
     data: { user },
     error: userError,
@@ -127,7 +172,7 @@ export async function updatePoll(pollId: string, formData: FormData) {
     return { error: "You must be logged in to update a poll." };
   }
 
-  // Only allow updating polls owned by the user
+  // The .eq('user_id', user.id) ensures that users can only update their own polls.
   const { error } = await supabase
     .from("polls")
     .update({ question, options })
