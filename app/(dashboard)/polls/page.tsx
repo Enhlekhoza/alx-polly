@@ -1,8 +1,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getUserPolls } from '@/app/lib/actions/poll-actions';
-import PollActions from './PollActions'; 
+import PollActions from './PollActions';
+import SharePoll from './SharePoll';
 
+/**
+ * Dashboard page component that displays the user's polls.
+ */
 export default async function PollsPage() {
   const { polls, error } = await getUserPolls();
 
@@ -16,7 +20,11 @@ export default async function PollsPage() {
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {polls && polls.length > 0 ? (
-          polls.map((poll) => <PollActions key={poll.id} poll={poll} />)
+          polls.map((poll) => (
+            <PollActions key={poll.id} poll={poll}>
+              <SharePoll pollId={poll.id} />
+            </PollActions>
+          ))
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center col-span-full">
             <h2 className="text-xl font-semibold mb-2">No polls yet</h2>

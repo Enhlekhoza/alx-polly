@@ -12,11 +12,19 @@ interface Poll {
   user_id: string;
 }
 
+/**
+ * Props for the PollActions component.
+ */
 interface PollActionsProps {
   poll: Poll;
+  children: React.ReactNode;
 }
 
-export default function PollActions({ poll }: PollActionsProps) {
+/**
+ * @param poll - The poll data to display and manage.
+ * @returns The JSX for the poll actions component.
+ */
+export default function PollActions({ poll, children }: PollActionsProps) {
   const { user } = useAuth();
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this poll?")) {
@@ -40,13 +48,16 @@ export default function PollActions({ poll }: PollActionsProps) {
         </div>
       </Link>
       {user && user.id === poll.user_id && (
-        <div className="flex gap-2 p-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/polls/${poll.id}/edit`}>Edit</Link>
-          </Button>
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
-            Delete
-          </Button>
+        <div className="border-t p-4 space-y-4">
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/polls/${poll.id}/edit`}>Edit</Link>
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleDelete}>
+              Delete
+            </Button>
+          </div>
+          {children}
         </div>
       )}
     </div>
