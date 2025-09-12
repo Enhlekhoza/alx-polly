@@ -140,3 +140,24 @@ export async function updatePoll(pollId: string, formData: FormData) {
 
   return { error: null };
 }
+
+// GET POLL RESULTS
+export async function getPollResults(pollId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("votes")
+    .select("option_index")
+    .eq("poll_id", pollId);
+
+  if (error) {
+    return { results: null, error: error.message };
+  }
+
+  const results = data.reduce((acc, vote) => {
+    acc[vote.option_index] = (acc[vote.option_index] || 0) + 1;
+    return acc;
+  }, {} as Record<number, number>);
+
+  return { results, error: null };
+}
