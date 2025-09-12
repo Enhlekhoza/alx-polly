@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -15,7 +14,29 @@ import { getPollById, submitVote } from "@/app/lib/actions/poll-actions";
 import { toast } from "sonner";
 import PollResults from "./PollResults";
 
-export default function PollDetailPage({ params }: { params: { id: string } }) {
+// ----------------------
+// Type Definitions
+// ----------------------
+type PollOption = {
+  text: string;
+  votes: number;
+};
+
+type Poll = {
+  id: string;
+  title: string;
+  options: PollOption[];
+  createdAt: string;
+};
+
+// ----------------------
+// Component
+// ----------------------
+interface PollDetailPageProps {
+  params: { id: string };
+}
+
+export default function PollDetailPage({ params }: PollDetailPageProps) {
   const [poll, setPoll] = useState<Poll | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,6 +47,7 @@ export default function PollDetailPage({ params }: { params: { id: string } }) {
       const { poll: fetchedPoll, error } = await getPollById(params.id);
       if (error) {
         console.error(error);
+        toast.error("Failed to fetch poll.");
         return;
       }
       setPoll(fetchedPoll as Poll);
@@ -79,7 +101,7 @@ export default function PollDetailPage({ params }: { params: { id: string } }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            {poll.options.map((option, index) => (
+            {poll.options.map((option: PollOption, index: number) => (
               <div
                 key={index}
                 className={`p-3 border rounded-md cursor-pointer transition-colors ${
@@ -107,8 +129,6 @@ export default function PollDetailPage({ params }: { params: { id: string } }) {
           </span>
         </CardFooter>
       </Card>
-
-      {showResults && <PollResults pollId={poll.id} />}
 
       {showResults && <PollResults pollId={poll.id} />}
 
